@@ -42,9 +42,18 @@
 
 /*
  Explain what you did to fix the code:
+Hard coded the block size to 256 and the grid size to 64
+Function addVectorsGPU was changed to add a for loop with an if statement outside to make sure we are working on valid memory places,
+	i placed the if statement outside the for loop so the condition is only checked once, then the for loop keeps us in check once the gate is opened.
+side note: I am not sure if the statement is actually needed?
+	i also made this a grid stride for loop by jumping by i+=blockDim.x*gridDim.x (256*64)
+	also both addVectors function are using the more comlicated computation
+I tested using a value of 11503000 and it finally showed the gpu beating the cpu
+#pragma unroll reduces overhead by giving a hint to the compiler, unrolls the for loop into sequential steps, can also give it a value to determine the size of steps
  
 */
 
+/*
 //NEEDED TO ADD THIS HEADER AND FUNCTION BECAUSE I AM WORKING IN A WINDOWS ENVIRONMENT AT HOME
 #include <windows.h>
 
@@ -67,10 +76,10 @@ int gettimeofday(struct timeval* tv, void*)
 
 // Include files
 #include <cuda_runtime.h>
-
+*/
 
 // Include files
-//#include <sys/time.h>
+#include <sys/time.h>
 #include <stdio.h>
 
 // Defines

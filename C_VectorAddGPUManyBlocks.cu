@@ -148,11 +148,8 @@ __global__ void addVectorsGPU(float *a, float *b, float *c, int n)
 	//int id = threadIdx.x;
 	int id = blockDim.x * blockIdx.x + threadIdx.x;
 	
-	while(id < n)
-	{
-		c[id] = a[id] + b[id];
-		id += blockDim.x;
-	}
+	c[id] = a[id] + b[id];
+	id += blockDim.x;
 }
 
 // Checking to see if anything went wrong in the vector addition.

@@ -85,7 +85,7 @@ int main()
 
 		//Added below
 		printf("ECC enabled: %d\n", prop.ECCEnabled); //Device has ECC support enabled
-		printf("Access policy max window size: %zu\n", prop.accessPolicyMaxWindowSize); //Maximum cudaAccessPolicyWindow::num_bytes
+		printf("Access policy max window size: %d\n", prop.accessPolicyMaxWindowSize); //Maximum cudaAccessPolicyWindow::num_bytes
 		printf("Async engine count: %d\n", prop.asyncEngineCount); //Number of asynchronous engines
 		printf("Can map host memory: %d\n", prop.canMapHostMemory); //Device can map host memory with cudaHostAlloc/cudaHostGetDevicePointer
 		printf("Can use host pointer for registered memory: %d\n", prop.canUseHostPointerForRegisteredMem); //Device can access host registered memory at same virtual address as CPU
@@ -95,18 +95,18 @@ int main()
 		printf("Concurrent managed access: %d\n", prop.concurrentManagedAccess); //Can coherently access managed memory concurrently with CPU
 		printf("Cooperative launch: %d\n", prop.cooperativeLaunch); //Supports cooperative kernels via cudaLaunchCooperativeKernel
 		printf("Deferred mapping CUDA array supported: %d\n", prop.deferredMappingCudaArraySupported); //Supports deferred mapping CUDA arrays and mipmapped arrays
-		printf("Device NUMA config: %d\n", prop.deviceNumaConfig); //NUMA configuration, cudaDeviceNumaConfig enum
-		printf("Device NUMA ID: %d\n", prop.deviceNumaId); //NUMA node ID of GPU memory
+		//printf("Device NUMA config: %d\n", prop.deviceNumaConfig); //NUMA configuration, cudaDeviceNumaConfig enum
+		//printf("Device NUMA ID: %d\n", prop.deviceNumaId); //NUMA node ID of GPU memory
 		printf("Direct managed memory access from host: %d\n", prop.directManagedMemAccessFromHost); //Host can directly access managed memory without migration
 		printf("Global L1 cache supported: %d\n", prop.globalL1CacheSupported); //Supports caching globals in L1
 		printf("GPUDirect RDMA flush writes options: %u\n", prop.gpuDirectRDMAFlushWritesOptions); //Bitmask per cudaFlushGPUDirectRDMAWritesOptions
 		printf("GPUDirect RDMA supported: %d\n", prop.gpuDirectRDMASupported); //1 if supports GPUDirect RDMA APIs, else 0
 		printf("GPUDirect RDMA writes ordering: %d\n", prop.gpuDirectRDMAWritesOrdering); //See cudaGPUDirectRDMAWritesOrdering enum
-		printf("GPU PCI device ID: %d\n", prop.gpuPciDeviceID); //Combined 16-bit PCI device ID and 16-bit vendor ID
-		printf("GPU PCI subsystem ID: %d\n", prop.gpuPciSubsystemID); //Combined 16-bit PCI subsystem ID and subsystem vendor ID
+		//printf("GPU PCI device ID: %d\n", prop.gpuPciDeviceID); //Combined 16-bit PCI device ID and 16-bit vendor ID
+		//printf("GPU PCI subsystem ID: %d\n", prop.gpuPciSubsystemID); //Combined 16-bit PCI subsystem ID and subsystem vendor ID
 		printf("Host native atomic supported: %d\n", prop.hostNativeAtomicSupported); //Device-host link supports native atomic operations
-		printf("Host NUMA ID: %d\n", prop.hostNumaId); //Closest host NUMA node ID or -1 if unsupported
-		printf("Host NUMA multinode IPC supported: %d\n", prop.hostNumaMultinodeIpcSupported); //Supports HostNuma location IPC between nodes
+		//printf("Host NUMA ID: %d\n", prop.hostNumaId); //Closest host NUMA node ID or -1 if unsupported
+		//printf("Host NUMA multinode IPC supported: %d\n", prop.hostNumaMultinodeIpcSupported); //Supports HostNuma location IPC between nodes
 		printf("Host register read-only supported: %d\n", prop.hostRegisterReadOnlySupported); //Supports cudaHostRegisterReadOnly
 		printf("Host register supported: %d\n", prop.hostRegisterSupported); //Supports host memory registration via cudaHostRegister
 		printf("Integrated: %d\n", prop.integrated); //Device integrated vs discrete
@@ -148,14 +148,14 @@ int main()
 		printf("Memory pool supported handle types: %u\n", prop.memoryPoolSupportedHandleTypes); //Bitmask of handle types supported with mempool IPC
 		printf("Memory pools supported: %d\n", prop.memoryPoolsSupported); //Supports cudaMallocAsync/cudaMemPool family
 		printf("Minor compute capability: %d\n", prop.minor); //Minor compute capability
-		printf("MPS enabled: %d\n", prop.mpsEnabled); //Contexts shared via MPS
+		//printf("MPS enabled: %d\n", prop.mpsEnabled); //Contexts shared via MPS
 		printf("Multi-GPU board group ID: %d\n", prop.multiGpuBoardGroupID); //Unique identifier for group on same multi-GPU board
 		printf("Pageable memory access: %d\n", prop.pageableMemoryAccess); //Supports coherently accessing pageable memory without cudaHostRegister
 		printf("Pageable memory access uses host page tables: %d\n", prop.pageableMemoryAccessUsesHostPageTables); //Accesses pageable memory via host page tables
 		printf("PCI bus ID: %d\n", prop.pciBusID); //PCI bus ID
 		printf("PCI device ID: %d\n", prop.pciDeviceID); //PCI device ID
 		printf("PCI domain ID: %d\n", prop.pciDomainID); //PCI domain ID
-		printf("Persisting L2 cache max size: %zu bytes\n", prop.persistingL2CacheMaxSize); //Max L2 persisting lines capacity bytes
+		printf("Persisting L2 cache max size: %d bytes\n", prop.persistingL2CacheMaxSize); //Max L2 persisting lines capacity bytes
 		printf("Registers per multiprocessor: %d\n", prop.regsPerMultiprocessor); //32-bit registers available per multiprocessor
 		printf("Reserved: ");
 		for (int j = 0; j < 56; j++) printf("%d ", prop.reserved[j]);

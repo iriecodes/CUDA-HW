@@ -25,7 +25,64 @@
 
 /*
  Explain what you did to fix the code:
- 
+
+ __global__ void colorPixels(float, float, float, float, float, unsigned int, unsigned int, float); //passing in windowheight and width, art float for the offset
+
+int pixelX = blockIdx.x * blockDim.x + threadIdx.x;
+int pixelY = blockIdx.y * blockDim.y + threadIdx.y;
+
+if(pixelX >= windowWidth || pixelY >= windowHeight) //checks within bounds
+{
+	return;
+}
+
+id = 3*(pixelY*windowWidth + pixelX);//works for the rgb
+
+x = xMin + dx * pixelX; // maps coords to the plane
+y = yMin + dy * pixelY;
+
+//Threads in a block
+//if(WindowWidth > 1024)
+//{
+// 	printf("The window width is too large to run with this program\n");
+// 	printf("The window width must be less than 1024.\n");
+// 	printf("Good Bye and have a nice day!\n");
+// 	exit(0);
+//}
+
+//provides the 256 threads spread across 2d
+//blockSize.x = 1024; //WindowWidth;
+blockSize.x = 16; //WindowWidth;
+//blockSize.y = 1;
+blockSize.y = 16;
+blockSize.z = 1;
+
+//Blocks in a grid
+//gridSize.x = WindowHeight;
+gridSize.x = (WindowWidth + blockSize.x - 1) / blockSize.x; //ceiling formula from class for the x direction
+//gridSize.y = 1;
+gridSize.y = (WindowHeight + blockSize.y - 1) / blockSize.y;; //ceiling formula from class for the y direction
+gridSize.z = 1;
+
+TODO: still need to add aspect ratio for fun
+
+ART - 
+//added math header
+#include <math.h>
+__device__ void hsvToRgb(float, float, float, float&, float&, float&); for continous color values
+//prevents to much leakage added in display()
+free(pixelsCPU);
+cudaFree(pixelsGPU);
+
+//keeps time for recoloring
+void timer(int value)
+{
+timeOffset += 0.005f;
+if (timeOffset > 1.0f) timeOffset -= 1.0f;
+
+glutPostRedisplay();
+glutTimerFunc(32, timer, 0); //some amount of fps
+}
 */
 
 // Include files
@@ -37,17 +94,20 @@
 // Defines
 #define MAXMAG 10.0 // If you grow larger than this, we assume that you have escaped.
 #define MAXITERATIONS 200 // If you have not escaped after this many attempts, we assume you are not going to escape.
-#define A  -0.824	//Real part of C
-#define B  -0.1711	//Imaginary part of C
+//#define A  -0.824	//Real part of C
+//#define B  -0.1711	//Imaginary part of C
+#define A  -0.797	//Real part of C
+#define B  -.071	//Imaginary part of C
 
 // Global variables
-unsigned int WindowWidth = 1024;
-unsigned int WindowHeight = 1024;
+unsigned int WindowWidth = 1280;
+unsigned int WindowHeight = 960;
 
-float XMin = -2.0;
-float XMax =  2.0;
-float YMin = -2.0;
-float YMax =  2.0;
+float XMin = -1.5;
+float XMax =  1.5;
+float YMin = -1.5;
+float YMax =  1.5;
+
 //art to allow for color cycling
 float timeOffset = 0.0f;
 
@@ -164,15 +224,14 @@ __global__ void colorPixels(float *pixels, float xMin, float yMin, float dx, flo
 	float r, g, b;
 	if (t < 0.0f)
 	{
-		// Inside the Julia set: deep blue/purple that gently shimmers with time
-		// instead of flat black.
-		hsvToRgb(fmodf(0.72f + timeOffset * 0.3f, 1.0f), 0.6f, 0.12f, r, g, b);
+		//inside
+		hsvToRgb(fmodf(0.8f - timeOffset * 0.3f, 1.0f), 0.6f, 0.1f, r, g, b);
 	}
 	else
 	{
 		//escaped values for smooth and timeoffset
 		float hue = fmodf(t * 3.0f + timeOffset, 1.0f);
-		hsvToRgb(hue, 0.9f, 1.0f, r, g, b);
+		hsvToRgb(hue, hue, hue, r, g, b);
 	}
 	
 	//pixels[id] = escapeOrNotColor (x, y);
@@ -242,7 +301,7 @@ void timer(int value)
 	if (timeOffset > 1.0f) timeOffset -= 1.0f;
 
 	glutPostRedisplay();
-	glutTimerFunc(16, timer, 0); // ~60 fps
+	glutTimerFunc(32, timer, 0); //some amount of fps
 }
 
 int main(int argc, char** argv)
@@ -255,5 +314,3 @@ int main(int argc, char** argv)
 	glutTimerFunc(0, timer, 0);// begins timer
    	glutMainLoop();
 }
-
-

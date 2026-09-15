@@ -65,6 +65,13 @@ gridSize.y = (WindowHeight + blockSize.y - 1) / blockSize.y;; //ceiling formula 
 gridSize.z = 1;
 
 TODO: still need to add aspect ratio for fun
+const float BaseXMin = XMin;
+const float BaseXMax = XMax;
+const float BaseYMin = YMin;
+const float BaseYMax = YMax;
+
+void reshape(int, int); // added to handle the reshaping of window size and maintain aspect ratio
+glutReshapeFunc(reshape);
 
 ART - 
 //added math header
@@ -108,6 +115,12 @@ float XMax =  1.5;
 float YMin = -1.5;
 float YMax =  1.5;
 
+//art for aspect ratio keeps og view as reference
+const float BaseXMin = XMin;
+const float BaseXMax = XMax;
+const float BaseYMin = YMin;
+const float BaseYMax = YMax;
+
 //art to allow for color cycling
 float timeOffset = 0.0f;
 
@@ -118,6 +131,7 @@ __device__ void hsvToRgb(float, float, float, float&, float&, float&);
 //__global__ void colorPixels(float, float, float, float, float);
 __global__ void colorPixels(float, float, float, float, float, unsigned int, unsigned int, float); //passing in windowheight and width, art float for the offset
 void display(void);
+void reshape(int, int); // added to handle the reshaping of window size and maintain aspect ratio
 
 void cudaErrorCheck(const char *file, int line)
 {
@@ -173,18 +187,28 @@ __device__ float escapeOrNotColor (float x, float y)
 //continous values for color via hue saturation and value
 __device__ void hsvToRgb(float h, float s, float v, float &r, float &g, float &b)
 {
+	//chroma or color intensity
 	float c = v * s;
+	//color wheel into sections
 	float hh = h * 6.0f;
+	//middle values for between colors
 	float x = c * (1.0f - fabsf(fmodf(hh, 2.0f) - 1.0f));
+	//brightness
 	float m = v - c;
+	//temp vals waiting for brightness
 	float rr, gg, bb;
 
-	if      (hh < 1.0f) { rr = c; gg = x; bb = 0.0f; }
-	else if (hh < 2.0f) { rr = x; gg = c; bb = 0.0f; }
-	else if (hh < 3.0f) { rr = 0.0f; gg = c; bb = x; }
-	else if (hh < 4.0f) { rr = 0.0f; gg = x; bb = c; }
-	else if (hh < 5.0f) { rr = x; gg = 0.0f; bb = c; }
-	else                 { rr = c; gg = 0.0f; bb = x; }
+	if(hh < 1.0f) { rr = c; gg = x; bb = 0.0f; }//red to yellow
+	else if 
+		(hh < 2.0f) { rr = x; gg = c; bb = 0.0f; }//yellow to green
+	else if 
+		(hh < 3.0f) { rr = 0.0f; gg = c; bb = x; }//green to cyan
+	else if 
+		(hh < 4.0f) { rr = 0.0f; gg = x; bb = c; }//cyan to blue
+	else if 
+		(hh < 5.0f) { rr = x; gg = 0.0f; bb = c; }//blue to magenta
+	else                 
+		{ rr = c; gg = 0.0f; bb = x; }//magenta to red
 
 	r = rr + m;
 	g = gg + m;
@@ -304,6 +328,36 @@ void timer(int value)
 	glutTimerFunc(32, timer, 0); //some amount of fps
 }
 
+//maintains aspect ratio based on const variables
+void reshape(int w, int h)
+{
+	//handles minimize
+	if (w <= 0) w = 1;
+	if (h <= 0) h = 1;
+
+	WindowWidth  = (unsigned int)w;
+	WindowHeight = (unsigned int)h;
+
+	//covers window
+	glViewport(0, 0, w, h);
+
+	//calculate center points x,y
+	float xCenter = 0.5f * (BaseXMin + BaseXMax);
+	float yCenter = 0.5f * (BaseYMin + BaseYMax);
+	//keeps vertical view
+	float halfHeight = 0.5f * (BaseYMax - BaseYMin);
+	//prevents stretch
+	float halfWidth  = halfHeight * ((float)w / (float)h);
+
+	//calculates new "global" vals but within the function
+	XMin = xCenter - halfWidth;
+	XMax = xCenter + halfWidth;
+	YMin = yCenter - halfHeight;
+	YMax = yCenter + halfHeight;
+
+	glutPostRedisplay();
+}
+
 int main(int argc, char** argv)
 { 
    	glutInit(&argc, argv);
@@ -311,6 +365,7 @@ int main(int argc, char** argv)
    	glutInitWindowSize(WindowWidth, WindowHeight);
 	glutCreateWindow("Fractals--Man--Fractals");
    	glutDisplayFunc(display);
+	glutReshapeFunc(reshape); // handles resizing
 	glutTimerFunc(0, timer, 0);// begins timer
    	glutMainLoop();
 }

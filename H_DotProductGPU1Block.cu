@@ -27,6 +27,9 @@
 
 /*
  Explain what you did to fix the code:
+__global__ void dotProductGPU(); I created this function, it handles the multiplication part first then __syncthreads(), then checks if the splits are odd, 
+if they are odd, index 0 grabs the end of the active half and sums them up then __syncthreads(), then folds and __syncthreads(), and repeats until it is finished.
+__syncthreads() handles race conditions!!!
  
 */
 

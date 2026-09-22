@@ -24,9 +24,47 @@
 
 /*
  Explain what you did to fix the code:
+ Set the thread count (block size) to 256.
+ Tested code by setting N to different values. 250000 GPU WON!
+ GridSize.x = (N - 1) / BlockSize.x + 1;
+
+int id = threadIdx.x + blockIdx.x * blockDim.x; // updated original id var
+int threadId = threadIdx.x; // renamed prev var to keep place within threads
+
+__shared__ float sharedMem[256]; //shared memeory to access
+
+if(id < n)
+{
+	sharedMem[threadId] = a[id]*b[id];// multiplication
+}
+else
+{
+	sharedMem[threadId] = 0.0;//padded with zeros
+}
+
+//c[0] = c[0] + c[fold - 1];
+sharedMem[0] = sharedMem[0] + sharedMem[fold - 1]; // saving to shared mem
+
+//c[id] = c[id] + c[id + fold];
+sharedMem[threadId] = sharedMem[threadId] + sharedMem[threadId + fold];
+
+if(threadId == 0)
+{
+	c[blockIdx.x] = sharedMem[0];
+}
+
+and then in the main added these few lines
+
+DotGPU = 0.0;
+for(int i = 0; i < GridSize.x; i++)
+{
+	DotGPU += C_CPU[i]; // add the values from all the blocks
+}
+
  
 */
 
+/*
 //NEEDED TO ADD THIS HEADER AND FUNCTION BECAUSE I AM WORKING IN A WINDOWS ENVIRONMENT AT HOME
 #include <windows.h>
 
@@ -49,14 +87,15 @@ int gettimeofday(struct timeval* tv, void*)
 
 // Include files
 #include <cuda_runtime.h>
-
+*/
 
 // Include files
-//#include <sys/time.h>
+#include <sys/time.h>
 #include <stdio.h>
 
 // Defines
-#define N 25 // Length of the vector
+//#define N 25 // Length of the vector
+#define N 250000
 
 // Global variables
 float *A_CPU, *B_CPU, *C_CPU; //CPU pointers

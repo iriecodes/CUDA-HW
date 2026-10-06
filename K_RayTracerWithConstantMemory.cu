@@ -22,6 +22,38 @@
 
 /*
  Explain what you did to fix the code:
+Added - 
+__constant__ sphereStruct SpheresConstant[NUMSPHERES];
+
+//sphereStruct *SpheresCPU, *SpheresGPU; //dropped *SpheresGPU
+sphereStruct *SpheresCPU;
+
+Fixed function prototypes -
+//__device__ float hit(float , float , float *, float , float , float , float );
+__device__ float hit(float , float , float *, sphereStruct);
+//__global__ void makeSphersBitMap(float *, sphereStruct *);
+__global__ void makeSphersBitMap(float *);
+
+No longer needed to free memory for this variable -
+		//cudaFree(SpheresGPU); 
+		//cudaErrorCheck(__FILE__, __LINE__);
+
+In makeSphersBitMap -
+sphereInfo[i] changed to SpheresConstant[i]
+
+In makeRandomSpheres - save from SpheresCPU into SpheresConstant with size of 100 * sphereStruct
+	cudaMemcpyToSymbol(SpheresConstant, SpheresCPU, NUMSPHERES*sizeof(sphereStruct));
+	cudaErrorCheck(__FILE__, __LINE__);
+
+In makeBitMap -
+created and destroyed cuda Events
+
+In setup -
+	//Allocating memory for the spheres that will create the scene.
+	//This is what you will be changing out for constant memory.
+	SpheresCPU= (sphereStruct*)malloc(NUMSPHERES*sizeof(sphereStruct));
+	//cudaMalloc(&SpheresGPU, NUMSPHERES*sizeof(sphereStruct));
+	//cudaErrorCheck(__FILE__, __LINE__);
  
 */
 

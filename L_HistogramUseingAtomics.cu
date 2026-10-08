@@ -63,6 +63,7 @@ __global__ void fillHistogramGPU(float *randomNumbers, int *hist)
  
 */
 
+/*
 //NEEDED TO ADD THIS HEADER AND FUNCTION BECAUSE I AM WORKING IN A WINDOWS ENVIRONMENT AT HOME
 #include <windows.h>
 
@@ -85,14 +86,14 @@ int gettimeofday(struct timeval* tv, void*)
 
 // Include files
 #include <cuda_runtime.h>
-
+*/
 
 // Include files
 //#include <sys/time.h>
 #include <stdio.h>
 
 // Include files
-//#include <sys/time.h>
+#include <sys/time.h>
 //#include <stdio.h>
 
 /*

@@ -14,7 +14,22 @@
 
 /*
  Explain what you did to fix the code:
- 
+ In main - 
+	for(int i = 0; i < ENTIRE_DATA_SET; i += DATA_CHUNKS)
+	{
+		//??? Entered lines of code from the book but with our vars
+		cudaMemcpyAsync(A_GPU, A_CPU + i, DATA_CHUNKS*sizeof(float), cudaMemcpyHostToDevice, Stream0);
+		cudaErrorCheck(__FILE__, __LINE__);
+
+		cudaMemcpyAsync(B_GPU, B_CPU + i, DATA_CHUNKS*sizeof(float), cudaMemcpyHostToDevice, Stream0);
+		cudaErrorCheck(__FILE__, __LINE__);
+
+		trigAdditionGPU<<<GridSize, BlockSize, 0, Stream0>>>(A_GPU, B_GPU, C_GPU, DATA_CHUNKS);
+		cudaErrorCheck(__FILE__, __LINE__);
+
+		cudaMemcpyAsync(C_CPU + i, C_GPU, DATA_CHUNKS*sizeof(float), cudaMemcpyDeviceToHost, Stream0);
+		cudaErrorCheck(__FILE__, __LINE__);
+	}
 */
 
 // Include files

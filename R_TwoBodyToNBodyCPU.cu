@@ -109,7 +109,7 @@ void set_initail_conditions()
 		vy[i] = 2.0*MAX_VELOCITY*rand()/RAND_MAX - MAX_VELOCITY;
 		vz[i] = 2.0*MAX_VELOCITY*rand()/RAND_MAX - MAX_VELOCITY;
 		
-		mass[i] = 1.0;
+		mass[i] = MASS;
 	}
 }
 
@@ -214,6 +214,13 @@ void keep_in_box()
 void get_forces()
 {
 	float dx,dy,dz,r,r2,dvx,dvy,dvz,forceMag,inout;
+
+	for(int i = 0; i < NUMBER_OF_SPHERES; i++)
+	{
+		fx[i] = 0.0;
+		fy[i] = 0.0;
+		fz[i] = 0.0;
+	}
 	
 	for(int i = 0; i < NUMBER_OF_SPHERES; i++)
 	{

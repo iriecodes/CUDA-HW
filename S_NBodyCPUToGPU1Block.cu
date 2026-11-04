@@ -358,6 +358,9 @@ void nBody()
 		time += dt;
 		drawCount++;
 	}
+
+	cudaDeviceSynchronize();
+	cudaErrorCheck(__FILE__, __LINE__);
 	
 	//final spot back to cpu
 	cudaMemcpy(P, PGPU, N*sizeof(float3), cudaMemcpyDeviceToHost);

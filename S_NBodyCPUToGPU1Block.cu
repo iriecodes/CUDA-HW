@@ -265,9 +265,9 @@ __global__ void getForces(float3 *p, float3 *f, float *m, float g, float h, int 
 	int i = threadIdx.x;
 	
 	//zero out them forces
-	f[i].x = 0.0f;
-	f[i].y = 0.0f;
-	f[i].z = 0.0f;
+	fx = 0.0f;
+	fy = 0.0f;
+	fz = 0.0f;
 	
 	//loop over every other body j, each thread only writes to its own f[i] which avoids the race condition, so each pair gets done twice
 	for(int j = 0; j < n; j++)

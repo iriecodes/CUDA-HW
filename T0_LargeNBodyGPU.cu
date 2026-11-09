@@ -1,4 +1,4 @@
-// Name: 
+// Name: Irie Slabach
 // Creating a n = whatever from an n <= 1024 nBody GPU code. 
 // nvcc T0_LargeNBodyGPU.cu -o temp -lglut -lm -lGLU -lGL
 
@@ -46,9 +46,9 @@
 
 // Globals
 int N, DrawFlag;
-float3 *P, *V, *F;
+float4 *P, *V, *F;
 float *M; 
-float3 *PGPU, *VGPU, *FGPU;
+float4 *PGPU, *VGPU, *FGPU;
 float *MGPU;
 float GlobeRadius, Diameter, Radius;
 float Damp;
@@ -62,7 +62,9 @@ long elaspedTime(struct timeval, struct timeval);
 void drawPicture();
 void timer();
 void setup();
-__global__ void leapFrog(float3 *, float3 *, float3 *, float *, float, float, float, float, float, int);
+//__global__ void leapFrog(float4 *, float4 *, float4 *, float *, float, float, float, float, float, int);
+__global__ void getForces(float4 *, float4 *, float *, float, float, int);
+__global__ void moveBodies(float4 *, float4 *, float4 *, float *, float, float, float, int);
 void nBody();
 int main(int, char**);
 
@@ -112,7 +114,7 @@ void drawPicture()
 	glClear(GL_COLOR_BUFFER_BIT);
 	glClear(GL_DEPTH_BUFFER_BIT);
 	
-	cudaMemcpyAsync(P, PGPU, N*sizeof(float3), cudaMemcpyDeviceToHost);
+	cudaMemcpyAsync(P, PGPU, N*sizeof(float4), cudaMemcpyDeviceToHost);
 	cudaErrorCheck(__FILE__, __LINE__);
 	
 	glColor3d(1.0,1.0,0.5);
@@ -150,28 +152,30 @@ void setup()
     	float d, dx, dy, dz;
     	int test;
     	
-    	BlockSize.x = N;
+    	//BlockSize.x = N;
+		BlockSize.x = 256;
 	BlockSize.y = 1;
 	BlockSize.z = 1;
 	
-	GridSize.x = 1;
+	//GridSize.x = 1;
+	GridSize.x = (N - 1)/BlockSize.x + 1;
 	GridSize.y = 1;
 	GridSize.z = 1;
     	
     	Damp = 0.5;
     	
     	M = (float*)malloc(N*sizeof(float));
-    	P = (float3*)malloc(N*sizeof(float3));
-    	V = (float3*)malloc(N*sizeof(float3));
-    	F = (float3*)malloc(N*sizeof(float3));
+    	P = (float4*)malloc(N*sizeof(float4));
+    	V = (float4*)malloc(N*sizeof(float4));
+    	F = (float4*)malloc(N*sizeof(float4));
     	
     	cudaMalloc(&MGPU,N*sizeof(float));
 	cudaErrorCheck(__FILE__, __LINE__);
-	cudaMalloc(&PGPU,N*sizeof(float3));
+	cudaMalloc(&PGPU,N*sizeof(float4));
 	cudaErrorCheck(__FILE__, __LINE__);
-	cudaMalloc(&VGPU,N*sizeof(float3));
+	cudaMalloc(&VGPU,N*sizeof(float4));
 	cudaErrorCheck(__FILE__, __LINE__);
-	cudaMalloc(&FGPU,N*sizeof(float3));
+	cudaMalloc(&FGPU,N*sizeof(float4));
 	cudaErrorCheck(__FILE__, __LINE__);
     	
 	
@@ -227,11 +231,11 @@ void setup()
 		M[i] = 1.0;
 	}
 	
-	cudaMemcpyAsync(PGPU, P, N*sizeof(float3), cudaMemcpyHostToDevice);
+	cudaMemcpyAsync(PGPU, P, N*sizeof(float4), cudaMemcpyHostToDevice);
 	cudaErrorCheck(__FILE__, __LINE__);
-	cudaMemcpyAsync(VGPU, V, N*sizeof(float3), cudaMemcpyHostToDevice);
+	cudaMemcpyAsync(VGPU, V, N*sizeof(float4), cudaMemcpyHostToDevice);
 	cudaErrorCheck(__FILE__, __LINE__);
-	cudaMemcpyAsync(FGPU, F, N*sizeof(float3), cudaMemcpyHostToDevice);
+	cudaMemcpyAsync(FGPU, F, N*sizeof(float4), cudaMemcpyHostToDevice);
 	cudaErrorCheck(__FILE__, __LINE__);
 	cudaMemcpyAsync(MGPU, M, N*sizeof(float), cudaMemcpyHostToDevice);
 	cudaErrorCheck(__FILE__, __LINE__);
@@ -239,72 +243,88 @@ void setup()
 	printf("\n To start timing type s.\n");
 }
 
-__global__ void leapFrog(float3 *p, float3 *v, float3 *f, float *m, float g, float h, float damp, float dt, float t, int n)
+__global__ void getForces(float4 *p, float4 *f, float *m, float g, float h, int n)
 {
-	float dx, dy, dz,d,d2;
+	float dx, dy, dz, d, d2;
 	float force_mag;
-	
-	int i = threadIdx.x;
-	
-	f[i].x = 0.0f;
-	f[i].y = 0.0f;
-	f[i].z = 0.0f;
 
-	for(int j = 0; j < n; j++)
+	// Global thread index across all blocks.
+	int i = threadIdx.x + blockDim.x*blockIdx.x;
+
+	// Extra threads in the last block have no body to work on.
+	if(i < n)
 	{
-		if(i != j)
+		f[i].x = 0.0f;
+		f[i].y = 0.0f;
+		f[i].z = 0.0f;
+
+		for(int j = 0; j < n; j++)
 		{
-			dx = p[j].x-p[i].x;
-			dy = p[j].y-p[i].y;
-			dz = p[j].z-p[i].z;
-			d2 = dx*dx + dy*dy + dz*dz;
-			d  = sqrt(d2);
-			
-			force_mag  = (g*m[i]*m[j])/(d2) - (h*m[i]*m[j])/(d2*d2);
-			f[i].x += force_mag*dx/d;
-			f[i].y += force_mag*dy/d;
-			f[i].z += force_mag*dz/d;
+			if(i != j)
+			{
+				dx = p[j].x-p[i].x;
+				dy = p[j].y-p[i].y;
+				dz = p[j].z-p[i].z;
+				d2 = dx*dx + dy*dy + dz*dz;
+				d  = sqrt(d2);
+
+				force_mag  = (g*m[i]*m[j])/(d2) - (h*m[i]*m[j])/(d2*d2);
+				f[i].x += force_mag*dx/d;
+				f[i].y += force_mag*dy/d;
+				f[i].z += force_mag*dz/d;
+			}
 		}
 	}
-	__syncthreads();
-	
-	if(t == 0.0f)
-	{
-		v[i].x += ((f[i].x-damp*v[i].x)/m[i])*dt/2.0f;
-		v[i].y += ((f[i].y-damp*v[i].y)/m[i])*dt/2.0f;
-		v[i].z += ((f[i].z-damp*v[i].z)/m[i])*dt/2.0f;
-	}
-	else
-	{
-		v[i].x += ((f[i].x-damp*v[i].x)/m[i])*dt;
-		v[i].y += ((f[i].y-damp*v[i].y)/m[i])*dt;
-		v[i].z += ((f[i].z-damp*v[i].z)/m[i])*dt;
-	}
+}
 
-	p[i].x += v[i].x*dt;
-	p[i].y += v[i].y*dt;
-	p[i].z += v[i].z*dt;
-	__syncthreads();
+__global__ void moveBodies(float4 *p, float4 *v, float4 *f, float *m, float damp, float dt, float t, int n)
+{
+	// Global thread index across all blocks.
+	int i = threadIdx.x + blockDim.x*blockIdx.x;
+
+	if(i < n)
+	{
+		if(t == 0.0f)
+		{
+			v[i].x += ((f[i].x-damp*v[i].x)/m[i])*dt/2.0f;
+			v[i].y += ((f[i].y-damp*v[i].y)/m[i])*dt/2.0f;
+			v[i].z += ((f[i].z-damp*v[i].z)/m[i])*dt/2.0f;
+		}
+		else
+		{
+			v[i].x += ((f[i].x-damp*v[i].x)/m[i])*dt;
+			v[i].y += ((f[i].y-damp*v[i].y)/m[i])*dt;
+			v[i].z += ((f[i].z-damp*v[i].z)/m[i])*dt;
+		}
+
+		p[i].x += v[i].x*dt;
+		p[i].y += v[i].y*dt;
+		p[i].z += v[i].z*dt;
+	}
 }
 
 void nBody()
 {
-	int    drawCount = 0; 
+	int    drawCount = 0;
 	float  t = 0.0;
 	float dt = 0.0001;
 
 	while(t < RUN_TIME)
 	{
-		leapFrog<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU, MGPU, G, H, Damp, dt, t, N);
-		if(drawCount == DRAW_RATE) 
+		getForces<<<GridSize,BlockSize>>>(PGPU, FGPU, MGPU, G, H, N);
+		cudaErrorCheck(__FILE__, __LINE__);
+		moveBodies<<<GridSize,BlockSize>>>(PGPU, VGPU, FGPU, MGPU, Damp, dt, t, N);
+		cudaErrorCheck(__FILE__, __LINE__);
+
+		if(drawCount == DRAW_RATE)
 		{
-			if(DrawFlag) 
-			{	
+			if(DrawFlag)
+			{
 				drawPicture();
 			}
 			drawCount = 0;
 		}
-		
+
 		t += dt;
 		drawCount++;
 	}
@@ -359,7 +379,7 @@ int main(int argc, char** argv)
 	glutKeyboardFunc(keyPressed);
 	glutDisplayFunc(drawPicture);
 	
-	float3 eye = {0.0f, 0.0f, 2.0f*GlobeRadius};
+	float4 eye = {0.0f, 0.0f, 2.0f*GlobeRadius};
 	float near = 0.2;
 	float far = 5.0*GlobeRadius;
 	
@@ -373,8 +393,3 @@ int main(int argc, char** argv)
 	glutMainLoop();
 	return 0;
 }
-
-
-
-
-

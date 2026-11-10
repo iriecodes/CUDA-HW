@@ -19,6 +19,22 @@
 
 /*
  Explain what you did to fix the code:
+//__global__ void leapFrog(float4 *, float4 *, float4 *, float *, float, float, float, float, float, int);
+__global__ void getForces(float4 *, float4 *, float *, float, float, int);
+__global__ void moveBodies(float4 *, float4 *, float4 *, float *, float, float, float, int);
+
+    	//BlockSize.x = N;
+		BlockSize.x = 256;
+	BlockSize.y = 1;
+	BlockSize.z = 1;
+	
+	//GridSize.x = 1;
+	GridSize.x = (N - 1)/BlockSize.x + 1;
+	GridSize.y = 1;
+	GridSize.z = 1;
+
+//global thread index
+int i = threadIdx.x + blockDim.x*blockIdx.x;
  
 */
 
@@ -248,10 +264,10 @@ __global__ void getForces(float4 *p, float4 *f, float *m, float g, float h, int 
 	float dx, dy, dz, d, d2;
 	float force_mag;
 
-	// Global thread index across all blocks.
+	//global thread index
 	int i = threadIdx.x + blockDim.x*blockIdx.x;
 
-	// Extra threads in the last block have no body to work on.
+	//stay in your lane
 	if(i < n)
 	{
 		f[i].x = 0.0f;
@@ -279,7 +295,7 @@ __global__ void getForces(float4 *p, float4 *f, float *m, float g, float h, int 
 
 __global__ void moveBodies(float4 *p, float4 *v, float4 *f, float *m, float damp, float dt, float t, int n)
 {
-	// Global thread index across all blocks.
+	//global thread index
 	int i = threadIdx.x + blockDim.x*blockIdx.x;
 
 	if(i < n)

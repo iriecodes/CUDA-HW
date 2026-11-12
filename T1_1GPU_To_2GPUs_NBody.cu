@@ -1,6 +1,6 @@
 // Name: Irie Slabach
 // nBody code on multiple GPUs. 
-// nvcc T1_1GPU_To_2GPUs_Nbody.cu -o temp -lglut -lm -lGLU -lGL
+// nvcc T1_1GPU_To_2GPUs_NBody.cu -o temp -lglut -lm -lGLU -lGL
 
 /*
  What to do:

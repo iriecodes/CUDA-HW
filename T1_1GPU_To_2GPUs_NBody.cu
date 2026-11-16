@@ -20,7 +20,8 @@
  0, N0 are handled by gpu 0 and bodies N0, N are handled by gpu 1
  Each gpu holds all the pos and masses and only the vel and forces of its own bodies
  kernels got an extra nLocal and offset so they only work on their own bodies, stay in your lane
- each gpu copies its updated half of the positions to the cpu, then the full position list is copied back to both gpus
+ gpus send their updated half of the positions straight to each other with cudaMemcpyPeer, no cpu in the middle
+ cpu only gets the positions when we draw
  
 */
 
@@ -147,6 +148,25 @@ void setup()
 		printf("\n Not enough GPUs :( \n");
 		exit(0);
 	}
+
+	//make sure the gpus can talk to each other directly, then turn on peer access both ways
+	int canAccess01, canAccess10;
+	cudaDeviceCanAccessPeer(&canAccess01, 0, 1);
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaDeviceCanAccessPeer(&canAccess10, 1, 0);
+	cudaErrorCheck(__FILE__, __LINE__);
+	if(canAccess01 == 0 || canAccess10 == 0)
+	{
+		printf("\n GPU 0 and GPU 1 do not support peer-to-peer access :( \n");
+		exit(0);
+	}
+
+	cudaSetDevice(0);
+	cudaDeviceEnablePeerAccess(1, 0);
+	cudaErrorCheck(__FILE__, __LINE__);
+	cudaSetDevice(1);
+	cudaDeviceEnablePeerAccess(0, 0);
+	cudaErrorCheck(__FILE__, __LINE__);
 	
 	cudaSetDevice(0);
 	cudaMalloc(&MGPU0,N*sizeof(float));
@@ -323,23 +343,28 @@ void nBody()
 		moveBodies<<<GridSize1,BlockSize>>>(PGPU1, VGPU1, FGPU1, MGPU1, Damp, dt, t, N1, N0);
 		cudaErrorCheck(__FILE__, __LINE__);
 
-		//updated half of the positions back to cpu
+		//wait for gpus to finish moving their bodies before exchanging positions
 		cudaSetDevice(0);
-		cudaMemcpy(P, PGPU0, N0*sizeof(float3), cudaMemcpyDeviceToHost);
+		cudaDeviceSynchronize();
 		cudaErrorCheck(__FILE__, __LINE__);
 		cudaSetDevice(1);
-		cudaMemcpy(P + N0, PGPU1 + N0, N1*sizeof(float3), cudaMemcpyDeviceToHost);
+		cudaDeviceSynchronize();
 		cudaErrorCheck(__FILE__, __LINE__);
 
-		//final positions to gpus
-		cudaSetDevice(0);
-		cudaMemcpy(PGPU0, P, N*sizeof(float3), cudaMemcpyHostToDevice);
+		//p2p swap the updated positions, straight from gpu to gpu
+		// gpu 0's bodies [0, N0) -> gpu 1
+		cudaMemcpyPeer(PGPU1, 1, PGPU0, 0, N0*sizeof(float3));
 		cudaErrorCheck(__FILE__, __LINE__);
-		cudaSetDevice(1);
-		cudaMemcpy(PGPU1, P, N*sizeof(float3), cudaMemcpyHostToDevice);
+		// gpu 1's bodies [N0, N) -> gpu 0
+		cudaMemcpyPeer(PGPU0 + N0, 0, PGPU1 + N0, 1, N1*sizeof(float3));
 		cudaErrorCheck(__FILE__, __LINE__);
+
+		//bring positions to the host when drawing
 		if(drawCount == DRAW_RATE) 
 		{	
+			cudaSetDevice(0);
+			cudaMemcpy(P, PGPU0, N*sizeof(float3), cudaMemcpyDeviceToHost);
+			cudaErrorCheck(__FILE__, __LINE__);
 			drawPicture();
 			drawCount = 0;
 		}
